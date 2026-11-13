@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Feud Game</title>
+<style>
+  :root { color-scheme: dark; --gold:#ffc84a; --cyan:#26cfff; --blue:#062d9a; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; background:#03091c; color:white; font-family:Arial,Helvetica,sans-serif; }
+  body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:12px; }
+  button,input,select { font:inherit; }
+  button { cursor:pointer; }
+  .app { width:min(100%, calc((100vh - 24px) * 16 / 9)); }
+  .board { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; background:#061b52 center/100% 100% no-repeat; border-radius:3px; box-shadow:0 0 28px #007dff55; isolation:isolate; }
+  .overlay { position:absolute; inset:0; }
+  .question { position:absolute; left:28.25%; top:25.1%; width:43.5%; height:9.8%; display:flex; align-items:center; justify-content:center; padding:0 2%; text-align:center; color:#fff; font-weight:800; font-size:clamp(10px,2.1vw,24px); line-height:1.05; text-shadow:0 2px 3px #00133f; overflow:hidden; }
+  /* Unrevealed buttons are invisible hit areas: the artwork's original numbered
+     slots remain fully visible underneath. Only revealed answers get a fill. */
+  .answer { position:absolute; width:21.5%; height:9.1%; border:1px solid transparent; border-radius:clamp(4px,.8vw,9px); background:transparent; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:3%; padding:0 2.1%; box-shadow:none; transition:filter .15s, background .15s; }
+  .answer:hover:not(:disabled) { background:transparent; }
+  .answer:focus-visible { outline:2px solid #7ce8ff; outline-offset:2px; }
+  .answer:disabled { cursor:default; }
+  .answer .num { flex:0 0 auto; width:clamp(20px,4.5%,44px); height:70%; max-height:34px; aspect-ratio:1.25; border:2px solid #dbe9ff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:clamp(10px,1.9vw,21px); }
+  .answer .answer-text { flex:1; text-align:left; font-size:clamp(8px,1.35vw,16px); font-weight:800; overflow-wrap:anywhere; line-height:1.05; }
+  .answer .points { flex:0 0 auto; font-weight:900; font-size:clamp(10px,1.8vw,20px); color:#ffe17a; }
+  .answer.revealed { background:linear-gradient(135deg,rgba(4,91,160,.97),rgba(0,34,107,.98)); }
+  .answer.revealed .num { display:none; }
+  .answer.revealed .answer-text { text-align:center; }
+  .team { position:absolute; top:35.8%; width:15.9%; height:15.1%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3%; text-align:center; padding:1%; }
+  .team.left { left:9.2%; } .team.right { right:9.2%; }
+  .team-name { width:100%; min-width:0; background:transparent; border:0; border-bottom:1px solid #48cfff88; color:#fff; text-align:center; font-weight:900; font-size:clamp(9px,1.55vw,17px); text-shadow:0 2px 3px #00123d; outline:none; padding:1px; }
+  .team-name:focus { background:#001b60aa; }
+  .team-score { font-size:clamp(16px,3.15vw,34px); line-height:1; font-weight:900; color:#fff; text-shadow:0 2px 4px #00123d,0 0 8px #21aaff; }
+  .bottom-left { position:absolute; left:25%; top:84.8%; width:14.9%; height:8.1%; display:flex; align-items:center; justify-content:center; padding:1%; }
+  .team-select { width:100%; max-width:100%; background:#03276f; color:white; border:1px solid #36cfff; border-radius:5px; padding:4px 2px; font-size:clamp(8px,1.15vw,13px); font-weight:700; }
+  .bottom-center { position:absolute; left:41.1%; top:86.5%; width:17.6%; height:5.2%; }
+  .award { width:100%; height:100%; border:1px solid #a6caff; border-radius:5px; background:linear-gradient(#334c76,#12274f); color:#fff; font-size:clamp(8px,1.15vw,13px); font-weight:900; text-shadow:0 1px 2px #000; padding:0 3px; }
+  .award:hover { filter:brightness(1.25); }
+  .bottom-right { position:absolute; left:59.7%; top:84.8%; width:16.1%; height:8.3%; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:2px; text-align:center; }
+  .round { font-size:clamp(8px,1.2vw,14px); font-weight:900; text-shadow:0 1px 3px #000; }
+  .multiplier { color:#ffe17a; font-size:clamp(8px,1.1vw,13px); font-weight:900; text-shadow:0 1px 3px #000; }
+  .utility { position:absolute; left:1%; bottom:1%; display:flex; gap:5px; z-index:5; opacity:.92; }
+  .utility button { background:#061a50dd; border:1px solid #4ccfff; border-radius:4px; color:#fff; padding:4px 7px; font-size:clamp(8px,.9vw,11px); }
+  .status { position:absolute; left:41%; top:76%; width:18%; text-align:center; color:#fff; font-weight:800; font-size:clamp(8px,1vw,12px); text-shadow:0 1px 3px #000; pointer-events:none; }
+  .modal { position:absolute; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; background:rgba(0,5,25,.82); padding:4%; text-align:center; }
+  .modal-card { width:min(80%,560px); border:2px solid var(--gold); border-radius:16px; padding:clamp(14px,3vw,30px); background:linear-gradient(145deg,#073da9,#020e3c); box-shadow:0 0 30px #008cff88; }
+  .modal h1 { color:var(--gold); margin:0 0 10px; font-size:clamp(20px,4vw,40px); text-shadow:0 2px 3px #000; }
+  .modal p { margin:8px 0 18px; font-size:clamp(11px,1.8vw,17px); }
+  .primary { background:linear-gradient(#ffdb69,#e89a16); border:2px solid #fff0ad; border-radius:8px; padding:10px 22px; color:#1a1740; font-weight:900; box-shadow:0 3px 0 #8b4a00; }
+  .primary:hover { filter:brightness(1.08); }
+  .hidden { display:none !important; }
+  .final-scores { display:flex; justify-content:center; gap:24px; flex-wrap:wrap; margin:16px 0; font-size:clamp(14px,2.4vw,22px); font-weight:900; }
+  .hint { font-size:11px; color:#c4dfff; }
+  @media (max-width:600px) {
+    body { padding:0; }
+    .app { width:100%; }
+    .board { border-radius:0; }
+    .answer { padding:0 1.5%; gap:1%; }
+    .answer .answer-text { font-size:clamp(7px,1.55vw,12px); }
+    .team-name { font-size:clamp(7px,1.7vw,12px); }
+    .team-score { font-size:clamp(13px,3.5vw,22px); }
+    .utility { bottom:0; }
+    .utility button { padding:2px 4px; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <section class="board" id="board" aria-label="Family Feud game board">
+    <div class="overlay">
+      <div class="question" id="questionText">Press Start Game to begin!</div>
+      <div id="answers"></div>
+      <div class="team left">
+        <input id="team1Name" class="team-name" aria-label="Team one name" value="TEAM BLUE" maxlength="18">
+        <div class="team-score" id="team1Score">0</div>
+      </div>
+      <div class="team right">
+        <input id="team2Name" class="team-name" aria-label="Team two name" value="TEAM GOLD" maxlength="18">
+        <div class="team-score" id="team2Score">0</div>
+      </div>
+      <div class="bottom-left">
+        <select class="team-select" id="teamSelect" aria-label="Team receiving points">
+          <option value="0">Award to Team Blue</option>
+          <option value="1">Award to Team Gold</option>
+        </select>
+      </div>
+      <div class="bottom-center"><button class="award" id="awardNext">AWARD POINTS &amp; NEXT</button></div>
+      <div class="bottom-right">
+        <div class="round" id="roundCounter">ROUND — / 10</div>
+        <div class="multiplier" id="multiplierLabel">NORMAL POINTS ×1</div>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="utility">
+        <button id="previousBtn" title="Go to previous round without changing scores">◀ Previous</button>
+        <button id="nextBtn" title="Go to next round without awarding points">Next ▶</button>
+        <button id="restartBtn">Restart</button>
+      </div>
+    </div>
+    <div class="modal" id="startModal">
+      <div class="modal-card">
+        <h1>FAMILY FEUD</h1>
+        <p>Ten rounds. Reveal answers, collect points, and see which team wins!</p>
+        <button class="primary" id="startBtn">START GAME</button>
+        <p class="hint">Tip: click a revealed tile only once. Edit team names directly on the board.</p>
+      </div>
+    </div>
+    <div class="modal hidden" id="finalModal">
+      <div class="modal-card">
+        <h1>THAT'S THE GAME!</h1>
+        <p id="winnerText">Final scores</p>
+        <div class="final-scores" id="finalScores"></div>
+        <button class="primary" id="playAgainBtn">PLAY AGAIN</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+
+/*
+  Edit the ten questions below. Each question must have 4–8 answers.
+  Points are multiplied by 3 in round 10; the board displays multiplied values.
+*/
+const QUESTIONS = [
+  { question:"Name something people do before going to bed.", answers:[["Brush their teeth",32],["Set an alarm",24],["Read",16],["Watch TV",12],["Wash their face",8],["Check their phone",5],["Pray",2],["Lock the doors",1]] },
+  { question:"Name a food you might eat at a picnic.", answers:[["Sandwiches",30],["Hot dogs",22],["Chips",16],["Watermelon",12],["Burgers",9],["Potato salad",6],["Cookies",3]] },
+  { question:"Name something found in a school backpack.", answers:[["Books",29],["Pencils",23],["Notebooks",17],["Laptop",12],["Water bottle",9],["Homework",6]] },
+  { question:"Name a place where people have to wait in line.", answers:[["Grocery store",31],["Amusement park",24],["Airport",17],["Bank",12],["Movie theater",9],["Doctor's office",7],["Coffee shop",4],["Post office",2]] },
+  { question:"Name something people take on a camping trip.", answers:[["Tent",30],["Sleeping bag",23],["Flashlight",17],["Food",12],["Bug spray",8]] },
+  { question:"Name an animal you might see at a zoo.", answers:[["Lion",28],["Elephant",24],["Giraffe",18],["Monkey",13],["Penguin",9],["Tiger",6]] },
+  { question:"Name a popular pizza topping.", answers:[["Pepperoni",35],["Cheese",22],["Mushrooms",14],["Sausage",11],["Olives",7],["Peppers",5],["Onions",3]] },
+  { question:"Name something you do when you get home.", answers:[["Change clothes",25],["Eat a snack",22],["Relax",18],["Check phone",13],["Do homework",9],["Watch TV",7],["Talk to family",4],["Take off shoes",2]] },
+  { question:"Name something people collect.", answers:[["Coins",27],["Trading cards",22],["Stamps",16],["Shoes",12],["Toys",9],["Comics",7]] },
+  { question:"Name something you might bring to a beach.", answers:[["Towel",30],["Sunscreen",24],["Sunglasses",17],["Umbrella",12],["Beach ball",8],["Snacks",5],["Book",3],["Flip-flops",1]] }
+];
+
+const board = document.getElementById("board");
+const answerLayer = document.getElementById("answers");
+const questionText = document.getElementById("questionText");
+const roundCounter = document.getElementById("roundCounter");
+const multiplierLabel = document.getElementById("multiplierLabel");
+const statusEl = document.getElementById("status");
+const teamSelect = document.getElementById("teamSelect");
+const teamNames = [document.getElementById("team1Name"), document.getElementById("team2Name")];
+const teamScoreEls = [document.getElementById("team1Score"), document.getElementById("team2Score")];
+let roundIndex = -1;
+let scores = [0, 0];
+let roundAwarded = Array(QUESTIONS.length).fill(false);
+let revealedByRound = QUESTIONS.map(() => new Set());
+let gameStarted = false;
+
+function currentQuestion() { return QUESTIONS[roundIndex]; }
+function multiplier() { return roundIndex === 9 ? 3 : 1; }
+function backgroundFor(count) { return `images/feud-background${count}.png`; }
+
+function render() {
+  if (!gameStarted || roundIndex < 0) return;
+  const q = currentQuestion();
+  board.style.backgroundImage = `url("${backgroundFor(q.answers.length)}")`;
+  questionText.textContent = q.question;
+  roundCounter.textContent = `ROUND ${roundIndex + 1} / ${QUESTIONS.length}`;
+  multiplierLabel.textContent = roundIndex === 9 ? "TRIPLE POINTS ×3" : "NORMAL POINTS ×1";
+  multiplierLabel.style.color = roundIndex === 9 ? "#ffef82" : "#ffffff";
+  teamNames[0].value = teamNames[0].value || "TEAM BLUE";
+  teamNames[1].value = teamNames[1].value || "TEAM GOLD";
+  teamSelect.options[0].textContent = `Award to ${teamNames[0].value}`;
+  teamSelect.options[1].textContent = `Award to ${teamNames[1].value}`;
+  teamScoreEls.forEach((el, i) => el.textContent = scores[i].toLocaleString());
+  answerLayer.innerHTML = "";
+  q.answers.forEach((answer, i) => {
+    // The artwork is arranged in two columns: answers 1–4 on the left,
+    // answers 5–8 on the right, with row positions shared by all backgrounds.
+    const col = i < 4 ? 0 : 1;
+    const row = i < 4 ? i : i - 4;
+    const btn = document.createElement("button");
+    btn.className = "answer" + (revealedByRound[roundIndex].has(i) ? " revealed" : "");
+    btn.style.left = col === 0 ? "28.25%" : "50.2%";
+    btn.style.top = `${36.1 + row * 10.0}%`;
+    btn.setAttribute("aria-label", `Reveal answer ${i + 1}`);
+    if (revealedByRound[roundIndex].has(i)) {
+      btn.innerHTML = `<span class="answer-text"></span><span class="points"></span>`;
+      btn.querySelector(".answer-text").textContent = answer[0];
+      btn.querySelector(".points").textContent = answer[1] * multiplier();
+      btn.disabled = true;
+    } else {
+      // Intentionally empty and fully transparent: show the number already
+      // printed on the background image until the player clicks this slot.
+      btn.setAttribute("aria-label", `Reveal answer ${i + 1}`);
+      btn.addEventListener("click", () => revealAnswer(i));
+    }
+    answerLayer.appendChild(btn);
+  });
+  const total = q.answers.reduce((sum, a, i) => sum + (revealedByRound[roundIndex].has(i) ? a[1] * multiplier() : 0), 0);
+  statusEl.textContent = total ? `ROUND BANK: ${total}` : "";
+  document.getElementById("previousBtn").disabled = roundIndex === 0;
+  document.getElementById("nextBtn").disabled = roundIndex >= QUESTIONS.length - 1;
+  document.getElementById("awardNext").textContent = roundAwarded[roundIndex] ? (roundIndex === QUESTIONS.length - 1 ? "FINAL RESULTS" : "NEXT") : "AWARD POINTS";
+}
+function revealAnswer(index) {
+  if (!gameStarted || roundAwarded[roundIndex] || revealedByRound[roundIndex].has(index)) return;
+  revealedByRound[roundIndex].add(index);
+  render();
+}
+function awardAndNext() {
+  if (!gameStarted || roundIndex < 0) return;
+  // First click: award points and reveal every remaining answer.
+  if (!roundAwarded[roundIndex]) {
+    const q = currentQuestion();
+    const bank = q.answers.reduce((sum, answer, i) => {
+      return sum + (
+        revealedByRound[roundIndex].has(i)
+          ? answer[1] * multiplier()
+          : 0
+      );
+    }, 0);
+    scores[Number(teamSelect.value)] += bank;
+    // Reveal the answers that were not guessed.
+    q.answers.forEach((answer, i) => {
+      revealedByRound[roundIndex].add(i);
+    });
+    roundAwarded[roundIndex] = true;
+    render();
+    return;
+  }
+  // Second click: advance without awarding points again.
+  if (roundIndex === QUESTIONS.length - 1) {
+    showFinal();
+    return;
+  }
+  roundIndex++;
+  render();
+}
+function showFinal() {
+  teamScoreEls.forEach((el, i) => el.textContent = scores[i].toLocaleString());
+  const names = teamNames.map((el, i) => el.value.trim() || `TEAM ${i + 1}`);
+  const winner = scores[0] === scores[1] ? "It's a tie!" : `${names[scores[0] > scores[1] ? 0 : 1]} wins!`;
+  document.getElementById("winnerText").textContent = winner;
+  document.getElementById("finalScores").innerHTML = "";
+  names.forEach((name, i) => {
+    const div = document.createElement("div");
+    div.textContent = `${name}: ${scores[i].toLocaleString()}`;
+    document.getElementById("finalScores").appendChild(div);
+  });
+  document.getElementById("finalModal").classList.remove("hidden");
+}
+function startGame() {
+  gameStarted = true;
+  roundIndex = 0;
+  document.getElementById("startModal").classList.add("hidden");
+  document.getElementById("finalModal").classList.add("hidden");
+  render();
+}
+function resetGame() {
+  if (!confirm("Restart the game? This resets the round and both team scores.")) return;
+  scores = [0, 0];
+  roundAwarded = Array(QUESTIONS.length).fill(false);
+  revealedByRound = QUESTIONS.map(() => new Set());
+  roundIndex = 0;
+  gameStarted = true;
+  document.getElementById("finalModal").classList.add("hidden");
+  document.getElementById("startModal").classList.add("hidden");
+  render();
+}
+function navigateTo(index) {
+  if (index < 0 || index >= QUESTIONS.length) return;
+  roundIndex = index;
+  render();
+}
+
+document.getElementById("startBtn").addEventListener("click", startGame);
+document.getElementById("awardNext").addEventListener("click", awardAndNext);
+document.getElementById("previousBtn").addEventListener("click", () => navigateTo(roundIndex - 1));
+document.getElementById("nextBtn").addEventListener("click", () => navigateTo(roundIndex + 1));
+document.getElementById("restartBtn").addEventListener("click", resetGame);
+document.getElementById("playAgainBtn").addEventListener("click", resetGame);
+teamNames.forEach(() => {});
+teamNames.forEach((input) => input.addEventListener("input", () => {
+  teamSelect.options[0].textContent = `Award to ${teamNames[0].value || "TEAM BLUE"}`;
+  teamSelect.options[1].textContent = `Award to ${teamNames[1].value || "TEAM GOLD"}`;
+}));
+board.style.backgroundImage = 'url("images/feud-background8.png")';
+</script>
+</body>
+</html>
