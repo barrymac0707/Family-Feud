@@ -15,8 +15,6 @@
   .board { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; background:#061b52 center/100% 100% no-repeat; border-radius:3px; box-shadow:0 0 28px #007dff55; isolation:isolate; }
   .overlay { position:absolute; inset:0; }
   .question { position:absolute; left:28.25%; top:25.1%; width:43.5%; height:9.8%; display:flex; align-items:center; justify-content:center; padding:0 2%; text-align:center; color:#fff; font-weight:800; font-size:clamp(10px,2.1vw,24px); line-height:1.05; text-shadow:0 2px 3px #00133f; overflow:hidden; }
-  /* Unrevealed buttons are invisible hit areas: the artwork's original numbered
-     slots remain fully visible underneath. Only revealed answers get a fill. */
   .answer { position:absolute; width:21.5%; height:9.1%; border:1px solid transparent; border-radius:clamp(4px,.8vw,9px); background:transparent; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:3%; padding:0 2.1%; box-shadow:none; transition:filter .15s, background .15s; }
   .answer:hover:not(:disabled) { background:transparent; }
   .answer:focus-visible { outline:2px solid #7ce8ff; outline-offset:2px; }
@@ -87,7 +85,7 @@
       </div>
       <div class="bottom-center"><button class="award" id="awardNext">AWARD POINTS &amp; NEXT</button></div>
       <div class="bottom-right">
-        <div class="round" id="roundCounter">ROUND — / 10</div>
+        <div class="round" id="roundCounter">ROUND — / 20</div>
         <div class="multiplier" id="multiplierLabel">NORMAL POINTS ×1</div>
       </div>
       <div class="status" id="status"></div>
@@ -100,7 +98,7 @@
     <div class="modal" id="startModal">
       <div class="modal-card">
         <h1>FAMILY FEUD</h1>
-        <p>Ten rounds. Reveal answers, collect points, and see which team wins!</p>
+        <p>Twenty rounds. Reveal answers, collect points, and see which team wins!</p>
         <button class="primary" id="startBtn">START GAME</button>
         <p class="hint">Tip: click a revealed tile only once. Edit team names directly on the board.</p>
       </div>
@@ -119,20 +117,30 @@
 "use strict";
 
 /*
-  Edit the ten questions below. Each question must have 4–8 answers.
-  Points are multiplied by 3 in round 10; the board displays multiplied values.
+  Edit the twenty questions below. Each question must have 4–8 answers.
+  Points are multiplied by 3 only in round 20; the board displays multiplied values.
 */
 const QUESTIONS = [
-  { question:"Name something people do before going to bed.", answers:[["Brush their teeth",32],["Set an alarm",24],["Read",16],["Watch TV",12],["Wash their face",8],["Check their phone",5],["Pray",2],["Lock the doors",1]] },
-  { question:"Name a food you might eat at a picnic.", answers:[["Sandwiches",30],["Hot dogs",22],["Chips",16],["Watermelon",12],["Burgers",9],["Potato salad",6],["Cookies",3]] },
-  { question:"Name something found in a school backpack.", answers:[["Books",29],["Pencils",23],["Notebooks",17],["Laptop",12],["Water bottle",9],["Homework",6]] },
-  { question:"Name a place where people have to wait in line.", answers:[["Grocery store",31],["Amusement park",24],["Airport",17],["Bank",12],["Movie theater",9],["Doctor's office",7],["Coffee shop",4],["Post office",2]] },
-  { question:"Name something people take on a camping trip.", answers:[["Tent",30],["Sleeping bag",23],["Flashlight",17],["Food",12],["Bug spray",8]] },
-  { question:"Name an animal you might see at a zoo.", answers:[["Lion",28],["Elephant",24],["Giraffe",18],["Monkey",13],["Penguin",9],["Tiger",6]] },
-  { question:"Name a popular pizza topping.", answers:[["Pepperoni",35],["Cheese",22],["Mushrooms",14],["Sausage",11],["Olives",7],["Peppers",5],["Onions",3]] },
-  { question:"Name something you do when you get home.", answers:[["Change clothes",25],["Eat a snack",22],["Relax",18],["Check phone",13],["Do homework",9],["Watch TV",7],["Talk to family",4],["Take off shoes",2]] },
-  { question:"Name something people collect.", answers:[["Coins",27],["Trading cards",22],["Stamps",16],["Shoes",12],["Toys",9],["Comics",7]] },
-  { question:"Name something you might bring to a beach.", answers:[["Towel",30],["Sunscreen",24],["Sunglasses",17],["Umbrella",12],["Beach ball",8],["Snacks",5],["Book",3],["Flip-flops",1]] }
+  { question:"Name something people change on a regular basis.", answers:[["Clothes",85],["TV channel",6],["Their minds",4],["Hair",3]] },
+  { question:"Name something that might be made out of rubber.", answers:[["Tires / inner tube",82],["Rubber bands",8],["Shoes / boots",4],["Balls",4]] },
+  { question:"Name something you should throw out if it has a hole in it.", answers:[["Clothes / shoes",72],["Bag / trash bag",13],["Bucket",7],["Food / apple",7]] },
+  { question:"Name something a person might slip into.", answers:[["Comfy clothes / shoes",73],["A coma",15],["A bath / shower",5],["Bed",5]] },
+  { question:"Name something you will never throw away, no matter how ratty it gets.", answers:[["Clothes / shoes",65],["Blanket / quilt",18],["Teddy bear / doll",10],["Pillow",4]] },
+  { question:"Name an activity that requires using your lips.", answers:[["Kissing",59],["Talking",24],["Whistling",7],["Singing",4],["Playing instruments",4]] },
+  { question:"Name a place where you would hate to realize you left your phone behind.", answers:[["Airport",30],["Restaurant",22],["Concert / stadium",16],["Hotel",12],["School / work",9],["Taxi / rideshare",7],["Movie theater",4]] },
+  { question:"Name something people do when they're trying not to laugh.", answers:[["Cover their mouth",28],["Look away / down",22],["Bite their lip",16],["Cough / fake a cough",12],["Think of something serious",9],["Leave the room",7],["Make a weird face",4]] },
+  { question:"Name something you might accidentally say during a job interview.", answers:[["Something embarrassing",27],["A bad word",20],["I don't know",16],["The wrong company name",13],["A joke",10],["Too much personal information",8],["I need the money",6]] },
+  { question:"Name something that makes a road trip feel much longer.", answers:[["Traffic",32],["Bad weather",19],["Someone asking 'are we there yet?'",15],["Getting lost",12],["No music",9],["Car trouble",7],["Having to stop often",4]] },
+  { question:"Name something people are most likely to forget when leaving for vacation.", answers:[["Toothbrush",24],["Phone charger",22],["Sunscreen",16],["Medication",12],["Passport / ID",10],["Headphones",9],["Travel documents / tickets",7]] },
+  { question:"Name a reason someone might pretend they didn't see a text.", answers:[["They're busy",30],["They don't know what to say",21],["They forgot",17],["They don't want to respond",13],["They're avoiding drama",9],["They fell asleep",6],["They read it by accident",4]] },
+  { question:"Name something that can ruin a group photo.", answers:[["Someone blinking",29],["Someone making a face",21],["Bad lighting",16],["Someone is missing",12],["Blurry picture",9],["A photobomber",8],["Phone / camera problem",5]] },
+  { question:"Name something you would not want to hear from a pilot.", answers:[["'We have a problem'",30],["'Brace for impact'",23],["A strange noise / announcement",15],["'This is my first flight'",12],["'The engine stopped'",9],["'Does anyone know how to fly?'",7],["'We're out of fuel'",4]] },
+  { question:"Name something it might take a 100-year-old man 30 minutes to do.", answers:[["Go to the bathroom",24],["Walk any distance",16],["Get out of bed",15],["Make love",9],["Get dressed",8],["Climb stairs",6],["Eat",5]] },
+  { question:"When a woman is trying to catch a man, name something she pretends to like.", answers:[["Sports",66],["His face / body",8],["Sex / being with him",7],["Jokes / personality",7],["Cars",3],["Beer",3]] },
+  { question:"Name a place your boss might move your desk to if he really, really hated you.", answers:[["Basement",32],["Closet / storage room",23],["Near / in bathroom",19],["In the corner",8],["Hallway",4],["Outside / sidewalk",4],["Boiler room",3]] },
+  { question:"Name something that's much more exciting when it's new.", answers:[["Car",55],["Love / romance",18],["Computer / laptop",6],["Movie",5],["Marriage / spouse",4],["Clothes / shoes",3]] },
+  { question:"Name something that would make you suspicious if your friend suddenly bought it.", answers:[["A shovel",25],["A disguise",20],["A one-way ticket",16],["A lot of cleaning supplies",13],["A burner phone",11],["A lock / safe",9],["A lawyer's number",6]] },
+  { question:"Name something people do when they think nobody is watching.", answers:[["Dance / sing",27],["Talk to themselves",21],["Pick their nose",17],["Eat from the fridge",13],["Make silly faces",10],["Practice conversations",7],["Check themselves in a mirror",5]] }
 ];
 
 const board = document.getElementById("board");
@@ -144,69 +152,120 @@ const statusEl = document.getElementById("status");
 const teamSelect = document.getElementById("teamSelect");
 const teamNames = [document.getElementById("team1Name"), document.getElementById("team2Name")];
 const teamScoreEls = [document.getElementById("team1Score"), document.getElementById("team2Score")];
+
 let roundIndex = -1;
 let scores = [0, 0];
 let roundAwarded = Array(QUESTIONS.length).fill(false);
 let revealedByRound = QUESTIONS.map(() => new Set());
 let gameStarted = false;
 
-function currentQuestion() { return QUESTIONS[roundIndex]; }
-function multiplier() { return roundIndex === 9 ? 3 : 1; }
-function backgroundFor(count) { return `images/feud-background${count}.png`; }
+function currentQuestion() {
+  return QUESTIONS[roundIndex];
+}
+
+function multiplier() {
+  return roundIndex === QUESTIONS.length - 1 ? 3 : 1;
+}
+
+function backgroundFor(count) {
+  return `images/feud-background${count}.png`;
+}
 
 function render() {
   if (!gameStarted || roundIndex < 0) return;
+
   const q = currentQuestion();
+
   board.style.backgroundImage = `url("${backgroundFor(q.answers.length)}")`;
   questionText.textContent = q.question;
   roundCounter.textContent = `ROUND ${roundIndex + 1} / ${QUESTIONS.length}`;
-  multiplierLabel.textContent = roundIndex === 9 ? "TRIPLE POINTS ×3" : "NORMAL POINTS ×1";
-  multiplierLabel.style.color = roundIndex === 9 ? "#ffef82" : "#ffffff";
+
+  multiplierLabel.textContent =
+    roundIndex === QUESTIONS.length - 1
+      ? "TRIPLE POINTS ×3"
+      : "NORMAL POINTS ×1";
+
+  multiplierLabel.style.color =
+    roundIndex === QUESTIONS.length - 1 ? "#ffef82" : "#ffffff";
+
   teamNames[0].value = teamNames[0].value || "TEAM BLUE";
   teamNames[1].value = teamNames[1].value || "TEAM GOLD";
+
   teamSelect.options[0].textContent = `Award to ${teamNames[0].value}`;
   teamSelect.options[1].textContent = `Award to ${teamNames[1].value}`;
-  teamScoreEls.forEach((el, i) => el.textContent = scores[i].toLocaleString());
+
+  teamScoreEls.forEach((el, i) => {
+    el.textContent = scores[i].toLocaleString();
+  });
+
   answerLayer.innerHTML = "";
+
   q.answers.forEach((answer, i) => {
-    // The artwork is arranged in two columns: answers 1–4 on the left,
-    // answers 5–8 on the right, with row positions shared by all backgrounds.
     const col = i < 4 ? 0 : 1;
     const row = i < 4 ? i : i - 4;
+
     const btn = document.createElement("button");
-    btn.className = "answer" + (revealedByRound[roundIndex].has(i) ? " revealed" : "");
+
+    btn.className =
+      "answer" + (revealedByRound[roundIndex].has(i) ? " revealed" : "");
+
     btn.style.left = col === 0 ? "28.25%" : "50.2%";
     btn.style.top = `${36.1 + row * 10.0}%`;
+
     btn.setAttribute("aria-label", `Reveal answer ${i + 1}`);
+
     if (revealedByRound[roundIndex].has(i)) {
       btn.innerHTML = `<span class="answer-text"></span><span class="points"></span>`;
+
       btn.querySelector(".answer-text").textContent = answer[0];
       btn.querySelector(".points").textContent = answer[1] * multiplier();
+
       btn.disabled = true;
     } else {
-      // Intentionally empty and fully transparent: show the number already
-      // printed on the background image until the player clicks this slot.
-      btn.setAttribute("aria-label", `Reveal answer ${i + 1}`);
       btn.addEventListener("click", () => revealAnswer(i));
     }
+
     answerLayer.appendChild(btn);
   });
-  const total = q.answers.reduce((sum, a, i) => sum + (revealedByRound[roundIndex].has(i) ? a[1] * multiplier() : 0), 0);
+
+  const total = q.answers.reduce((sum, a, i) => {
+    return sum + (
+      revealedByRound[roundIndex].has(i)
+        ? a[1] * multiplier()
+        : 0
+    );
+  }, 0);
+
   statusEl.textContent = total ? `ROUND BANK: ${total}` : "";
+
   document.getElementById("previousBtn").disabled = roundIndex === 0;
-  document.getElementById("nextBtn").disabled = roundIndex >= QUESTIONS.length - 1;
-  document.getElementById("awardNext").textContent = roundAwarded[roundIndex] ? (roundIndex === QUESTIONS.length - 1 ? "FINAL RESULTS" : "NEXT") : "AWARD POINTS";
+
+  document.getElementById("nextBtn").disabled =
+    roundIndex >= QUESTIONS.length - 1;
+
+  document.getElementById("awardNext").textContent =
+    roundAwarded[roundIndex]
+      ? (roundIndex === QUESTIONS.length - 1 ? "FINAL RESULTS" : "NEXT")
+      : "AWARD POINTS";
 }
-function revealAnswer(index) {
-  if (!gameStarted || roundAwarded[roundIndex] || revealedByRound[roundIndex].has(index)) return;
+  function revealAnswer(index) {
+  if (
+    !gameStarted ||
+    roundAwarded[roundIndex] ||
+    revealedByRound[roundIndex].has(index)
+  ) return;
+
   revealedByRound[roundIndex].add(index);
   render();
 }
+
 function awardAndNext() {
   if (!gameStarted || roundIndex < 0) return;
+
   // First click: award points and reveal every remaining answer.
   if (!roundAwarded[roundIndex]) {
     const q = currentQuestion();
+
     const bank = q.answers.reduce((sum, answer, i) => {
       return sum + (
         revealedByRound[roundIndex].has(i)
@@ -214,72 +273,124 @@ function awardAndNext() {
           : 0
       );
     }, 0);
+
     scores[Number(teamSelect.value)] += bank;
+
     // Reveal the answers that were not guessed.
     q.answers.forEach((answer, i) => {
       revealedByRound[roundIndex].add(i);
     });
+
     roundAwarded[roundIndex] = true;
     render();
     return;
   }
+
   // Second click: advance without awarding points again.
   if (roundIndex === QUESTIONS.length - 1) {
     showFinal();
     return;
   }
+
   roundIndex++;
   render();
 }
+
 function showFinal() {
-  teamScoreEls.forEach((el, i) => el.textContent = scores[i].toLocaleString());
-  const names = teamNames.map((el, i) => el.value.trim() || `TEAM ${i + 1}`);
-  const winner = scores[0] === scores[1] ? "It's a tie!" : `${names[scores[0] > scores[1] ? 0 : 1]} wins!`;
+  teamScoreEls.forEach((el, i) => {
+    el.textContent = scores[i].toLocaleString();
+  });
+
+  const names = teamNames.map((el, i) =>
+    el.value.trim() || `TEAM ${i + 1}`
+  );
+
+  const winner =
+    scores[0] === scores[1]
+      ? "It's a tie!"
+      : `${names[scores[0] > scores[1] ? 0 : 1]} wins!`;
+
   document.getElementById("winnerText").textContent = winner;
   document.getElementById("finalScores").innerHTML = "";
+
   names.forEach((name, i) => {
     const div = document.createElement("div");
     div.textContent = `${name}: ${scores[i].toLocaleString()}`;
+
     document.getElementById("finalScores").appendChild(div);
   });
+
   document.getElementById("finalModal").classList.remove("hidden");
 }
+
 function startGame() {
   gameStarted = true;
   roundIndex = 0;
+
   document.getElementById("startModal").classList.add("hidden");
   document.getElementById("finalModal").classList.add("hidden");
+
   render();
 }
+
 function resetGame() {
-  if (!confirm("Restart the game? This resets the round and both team scores.")) return;
+  if (!confirm("Restart the game? This resets the round and both team scores.")) {
+    return;
+  }
+
   scores = [0, 0];
   roundAwarded = Array(QUESTIONS.length).fill(false);
   revealedByRound = QUESTIONS.map(() => new Set());
+
   roundIndex = 0;
   gameStarted = true;
+
   document.getElementById("finalModal").classList.add("hidden");
   document.getElementById("startModal").classList.add("hidden");
+
   render();
 }
+
 function navigateTo(index) {
   if (index < 0 || index >= QUESTIONS.length) return;
+
   roundIndex = index;
   render();
 }
 
-document.getElementById("startBtn").addEventListener("click", startGame);
-document.getElementById("awardNext").addEventListener("click", awardAndNext);
-document.getElementById("previousBtn").addEventListener("click", () => navigateTo(roundIndex - 1));
-document.getElementById("nextBtn").addEventListener("click", () => navigateTo(roundIndex + 1));
-document.getElementById("restartBtn").addEventListener("click", resetGame);
-document.getElementById("playAgainBtn").addEventListener("click", resetGame);
-teamNames.forEach(() => {});
-teamNames.forEach((input) => input.addEventListener("input", () => {
-  teamSelect.options[0].textContent = `Award to ${teamNames[0].value || "TEAM BLUE"}`;
-  teamSelect.options[1].textContent = `Award to ${teamNames[1].value || "TEAM GOLD"}`;
-}));
+// Button event listeners
+document.getElementById("startBtn")
+  .addEventListener("click", startGame);
+
+document.getElementById("awardNext")
+  .addEventListener("click", awardAndNext);
+
+document.getElementById("previousBtn")
+  .addEventListener("click", () => navigateTo(roundIndex - 1));
+
+document.getElementById("nextBtn")
+  .addEventListener("click", () => navigateTo(roundIndex + 1));
+
+document.getElementById("restartBtn")
+  .addEventListener("click", resetGame);
+
+document.getElementById("playAgainBtn")
+  .addEventListener("click", resetGame);
+
+// Update team selection labels when team names change.
+teamNames.forEach((input) => {
+  input.addEventListener("input", () => {
+    teamSelect.options[0].textContent =
+      `Award to ${teamNames[0].value || "TEAM BLUE"}`;
+
+    teamSelect.options[1].textContent =
+      `Award to ${teamNames[1].value || "TEAM GOLD"}`;
+  });
+});
+
+// Initial background.
 board.style.backgroundImage = 'url("images/feud-background8.png")';
+
 </script>
 </body>
 </html>
